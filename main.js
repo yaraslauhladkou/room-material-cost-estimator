@@ -8,7 +8,6 @@ const inputs = {
     length: document.getElementById('length'),
     width: document.getElementById('width'),
     height: document.getElementById('height'),
-    // Note: 'price' is no longer here because it's dynamic now
 };
 
 const materialListContainer = document.getElementById('material-list');
@@ -29,21 +28,28 @@ const params = {
     width: 4,
     height: 3,
     materials: [
-        { id: 1, name: 'Insulation', price: 12.00 },
-        { id: 2, name: 'Paint', price: 5.50 }
+        // Default: Insulation on walls (4) and ceiling, but not floor
+        { id: 1, name: 'Insulation', price: 12.00, wallCount: 4, floor: false, ceiling: true },
+        // Default: Paint everywhere
+        { id: 2, name: 'Paint', price: 5.50, wallCount: 4, floor: false, ceiling: true },
+        // Default: Flooring only on floor
+        { id: 3, name: 'Laminate', price: 25.00, wallCount: 0, floor: true, ceiling: false }
     ]
 };
 
 // --- Material List Logic ---
 function renderMaterialInputs() {
-    if (!materialListContainer) return; // Guard clause if HTML is missing
+    if (!materialListContainer) return;
     materialListContainer.innerHTML = '';
 
     params.materials.forEach((mat, index) => {
-        const row = document.createElement('div');
-        row.className = 'material-row';
+        const card = document.createElement('div');
+        card.className = 'material-card';
 
-        // Name Input
+        // --- Header (Name, Price, Delete) ---
+        const header = document.createElement('div');
+        header.className = 'material-header';
+
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.placeholder = 'Material Name';
@@ -53,7 +59,6 @@ function renderMaterialInputs() {
             updateCalculations();
         });
 
-        // Price Input
         const priceInput = document.createElement('input');
         priceInput.type = 'number';
         priceInput.placeholder = '$/m²';
@@ -65,7 +70,6 @@ function renderMaterialInputs() {
             onInput();
         });
 
-        // Remove Button
         const removeBtn = document.createElement('button');
         removeBtn.className = 'btn-remove';
         removeBtn.innerHTML = '×';
@@ -76,10 +80,62 @@ function renderMaterialInputs() {
             onInput();
         });
 
-        row.appendChild(nameInput);
-        row.appendChild(priceInput);
-        row.appendChild(removeBtn);
-        materialListContainer.appendChild(row);
+        header.appendChild(nameInput);
+        header.appendChild(priceInput);
+        header.appendChild(removeBtn);
+
+        // --- Options (Walls Qty, Floor, Ceiling) ---
+        const options = document.createElement('div');
+        options.className = 'material-options';
+
+        // Wall Counter
+        const wallLabel = document.createElement('label');
+        wallLabel.className = 'option-group';
+        wallLabel.innerHTML = `Walls:`;
+        const wallInput = document.createElement('input');
+        wallInput.type = 'number';
+        wallInput.min = 0;
+        wallInput.max = 4;
+        wallInput.value = mat.wallCount;
+        wallInput.addEventListener('input', (e) => {
+            mat.wallCount = Math.max(0, Math.min(4, parseInt(e.target.value) || 0));
+            onInput();
+        });
+        wallLabel.appendChild(wallInput);
+
+        // Floor Checkbox
+        const floorLabel = document.createElement('label');
+        floorLabel.className = 'option-group';
+        const floorInput = document.createElement('input');
+        floorInput.type = 'checkbox';
+        floorInput.checked = mat.floor;
+        floorInput.addEventListener('change', (e) => {
+            mat.floor = e.target.checked;
+            onInput();
+        });
+        floorLabel.appendChild(floorInput);
+        floorLabel.append("Floor");
+
+        // Ceiling Checkbox
+        const ceilingLabel = document.createElement('label');
+        ceilingLabel.className = 'option-group';
+        const ceilingInput = document.createElement('input');
+        ceilingInput.type = 'checkbox';
+        ceilingInput.checked = mat.ceiling;
+        ceilingInput.addEventListener('change', (e) => {
+            mat.ceiling = e.target.checked;
+            onInput();
+        });
+        ceilingLabel.appendChild(ceilingInput);
+        ceilingLabel.append("Ceil");
+
+        options.appendChild(wallLabel);
+        options.appendChild(floorLabel);
+        options.appendChild(ceilingLabel);
+
+        card.appendChild(header);
+        card.appendChild(options);
+        materialListContainer.appendChild(card);
     });
 }
 
@@ -88,7 +144,10 @@ if (addMaterialBtn) {
         params.materials.push({
             id: Date.now(),
             name: 'New Layer',
-            price: 0
+            price: 0,
+            wallCount: 4, // Default all walls
+            floor: true,
+            ceiling: true
         });
         renderMaterialInputs();
         onInput();
@@ -99,15 +158,21 @@ if (addMaterialBtn) {
 function updateCalculations() {
     const { length, width, height } = params;
 
-    const wallArea = 2 * (length * height) + 2 * (width * height);
+    const totalWallArea = 2 * (length * height) + 2 * (width * height);
     const floorArea = length * width;
     const ceilingArea = length * width;
-    const totalArea = wallArea + floorArea + ceilingArea;
 
-    if (outputs.wall) outputs.wall.textContent = `${wallArea.toFixed(2)} m²`;
+    // Average area per wall (estimation)
+    const avgWallArea = totalWallArea / 4;
+
+    // Update UI Stats
+    if (outputs.wall) outputs.wall.textContent = `${totalWallArea.toFixed(2)} m²`;
     if (outputs.floor) outputs.floor.textContent = `${floorArea.toFixed(2)} m²`;
     if (outputs.ceiling) outputs.ceiling.textContent = `${ceilingArea.toFixed(2)} m²`;
-    if (outputs.total) outputs.total.textContent = `${totalArea.toFixed(2)} m²`;
+
+    // Calculate Total Area (Just geometry)
+    const totalGeoArea = totalWallArea + floorArea + ceilingArea;
+    if (outputs.total) outputs.total.textContent = `${totalGeoArea.toFixed(2)} m²`;
 
     let grandTotal = 0;
 
@@ -115,24 +180,36 @@ function updateCalculations() {
         costBreakdownContainer.innerHTML = '';
 
         params.materials.forEach(mat => {
-            const materialCost = totalArea * mat.price;
+            // Calculate specific area for this material
+            let matArea = 0;
+
+            // Wall Calculation (based on count 0-4)
+            matArea += (mat.wallCount * avgWallArea);
+
+            // Floor/Ceiling
+            if (mat.floor) matArea += floorArea;
+            if (mat.ceiling) matArea += ceilingArea;
+
+            const materialCost = matArea * mat.price;
             grandTotal += materialCost;
 
+            // UI Item
             const item = document.createElement('div');
             item.className = 'breakdown-item';
-
             const formatPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(materialCost);
 
+            // Small subtitle to show what's included
+            let includes = [];
+            if (mat.wallCount > 0) includes.push(`${mat.wallCount}W`);
+            if (mat.floor) includes.push('F');
+            if (mat.ceiling) includes.push('C');
+            const sub = includes.length ? `(${includes.join('+')})` : '(None)';
+
             item.innerHTML = `
-                <span>${mat.name || 'Unnamed'}</span>
+                <span>${mat.name || 'Layer'} <small style="opacity:0.5">${sub}</small></span>
                 <span>${formatPrice}</span>
             `;
             costBreakdownContainer.appendChild(item);
-        });
-    } else {
-        // Fallback calculation if DOM is missing
-        params.materials.forEach(mat => {
-            grandTotal += totalArea * mat.price;
         });
     }
 
@@ -196,22 +273,9 @@ loader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_regular.t
 
 function createLabel(text, position, color = 0xffffff, size = 0.3) {
     if (!font) return;
-
-    const textGeometry = new TextGeometry(text, {
-        font: font,
-        size: size,
-        height: size * 0.05,
-        curveSegments: 3,
-        bevelEnabled: false,
-    });
+    const textGeometry = new TextGeometry(text, { font: font, size: size, height: size * 0.05, curveSegments: 3, bevelEnabled: false });
     textGeometry.center();
-
-    const textMaterial = new THREE.MeshBasicMaterial({
-        color: color,
-        depthTest: false,
-        depthWrite: false
-    });
-
+    const textMaterial = new THREE.MeshBasicMaterial({ color: color, depthTest: false, depthWrite: false });
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
     textMesh.position.copy(position);
     textMesh.renderOrder = 999;
@@ -225,7 +289,7 @@ function updateScene() {
 
     const grandTotal = updateCalculations();
 
-    // Geometry
+    // Update Geometry
     room.scale.set(length, height, width);
     room.position.y = height / 2;
 
@@ -236,7 +300,7 @@ function updateScene() {
     gridHelper = new THREE.GridHelper(gridSize, 20, 0x444444, 0x222222);
     scene.add(gridHelper);
 
-    // Labels
+    // Clean Labels
     labelsGroup.children.forEach(child => {
         if (child.geometry) child.geometry.dispose();
         if (child.material) child.material.dispose();
@@ -245,22 +309,21 @@ function updateScene() {
 
     if (!font) return;
 
-    // Smart Sizing
+    // Label Logic
     let textSize = maxDim * 0.03;
     if (textSize > height * 0.15) textSize = height * 0.15;
     textSize = Math.max(0.15, textSize);
     const gap = textSize * 1.2;
 
-    // Values
     const formattedCost = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(grandTotal);
     const floorArea = (length * width).toFixed(2);
     const ceilingArea = (length * width).toFixed(2);
     const wallArea = (2 * length * height + 2 * width * height).toFixed(2);
 
-    // Labels creation
     createLabel(`${length}m`, new THREE.Vector3(0, 0, width / 2 + gap), 0xffffff, textSize);
     createLabel(`${width}m`, new THREE.Vector3(length / 2 + gap, 0, 0), 0xffffff, textSize);
     createLabel(`${height}m`, new THREE.Vector3(-length / 2 - gap, height / 2, -width / 2), 0xffffff, textSize);
+
     createLabel(`Floor: ${floorArea}m²`, new THREE.Vector3(0, gap, 0), 0xffff00, textSize);
     createLabel(`Ceiling: ${ceilingArea}m²`, new THREE.Vector3(0, height - gap, 0), 0xffff00, textSize);
     createLabel(`Walls: ${wallArea}m²`, new THREE.Vector3(0, height / 2, -width / 2 + gap), 0xffff00, textSize);
@@ -286,16 +349,11 @@ function onInput() {
     if (inputs.length) params.length = parseFloat(inputs.length.value) || 0;
     if (inputs.width) params.width = parseFloat(inputs.width.value) || 0;
     if (inputs.height) params.height = parseFloat(inputs.height.value) || 0;
-
     updateScene();
 }
 
-// --- FIX: Safely attach listeners ---
 Object.values(inputs).forEach(input => {
-    // We check 'if (input)' to ensure the element actually exists before trying to add a listener
-    if (input) {
-        input.addEventListener('input', onInput);
-    }
+    if (input) input.addEventListener('input', onInput);
 });
 
 // Initial Render
@@ -309,22 +367,14 @@ window.addEventListener('resize', () => {
 
 function animate() {
     requestAnimationFrame(animate);
-
     if (targetCameraPosition) {
         camera.position.lerp(targetCameraPosition, 0.05);
-        if (camera.position.distanceTo(targetCameraPosition) < 0.1) {
-            targetCameraPosition = null;
-        }
+        if (camera.position.distanceTo(targetCameraPosition) < 0.1) targetCameraPosition = null;
     }
-
-    labelsGroup.children.forEach(label => {
-        label.quaternion.copy(camera.quaternion);
-    });
-
+    labelsGroup.children.forEach(label => label.quaternion.copy(camera.quaternion));
     controls.update();
     renderer.render(scene, camera);
 }
 
-// Start
 onInput();
 animate();
