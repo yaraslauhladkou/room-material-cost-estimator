@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Room Material Estimator</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.js",
+          "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js",
+          "three/addons/loaders/FontLoader.js": "./vendor/FontLoader.js",
+          "three/addons/geometries/TextGeometry.js": "./vendor/TextGeometry.js"
+        }
+      }
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="controls">
+            <h1>Material Estimator</h1>
+
+            <div class="section-title">Dimensions</div>
+            <div class="input-group">
+                <label for="length">Length (m)</label>
+                <input type="number" id="length" value="5" min="1" step="0.1" />
+            </div>
+            <div class="input-group">
+                <label for="width">Width (m)</label>
+                <input type="number" id="width" value="4" min="1" step="0.1" />
+            </div>
+            <div class="input-group">
+                <label for="height">Height (m)</label>
+                <input type="number" id="height" value="3" min="1" step="0.1" />
+            </div>
+
+            <div class="section-title">Cost Settings</div>
+            <div class="input-group">
+                <label for="price">Material Price ($/m²)</label>
+                <input type="number" id="price" value="15" min="0" step="0.5" />
+            </div>
+
+            <div class="results">
+                <div class="result-item">
+                    <span>Walls Area</span>
+                    <span id="wall-area">0 m²</span>
+                </div>
+                <div class="result-item">
+                    <span>Floor Area</span>
+                    <span id="floor-area">0 m²</span>
+                </div>
+                <div class="result-item">
+                    <span>Ceiling Area</span>
+                    <span id="ceiling-area">0 m²</span>
+                </div>
+                <div class="result-item total-area">
+                    <span>Total Area</span>
+                    <span id="total-area">0 m²</span>
+                </div>
+                <div class="result-item cost-result">
+                    <span>Est. Cost</span>
+                    <span id="total-cost">$0.00</span>
+                </div>
+            </div>
+        </div>
+        <div id="canvas-container"></div>
+    </div>
+    <script type="module" src="./main.js"></script>
+</body>
+
+</html>
