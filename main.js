@@ -340,7 +340,7 @@ const labelsGroup = new THREE.Group();
 scene.add(labelsGroup);
 
 const loader = new FontLoader();
-loader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json', function (loadedFont) {
+loader.load('./vendor/helvetiker_regular.typeface.json', function (loadedFont) {
     font = loadedFont;
     updateScene();
 });
