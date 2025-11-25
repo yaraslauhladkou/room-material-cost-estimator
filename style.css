@@ -7,11 +7,11 @@
     --accent: #646cff;
     --success: #00ff88;
     --danger: #ff4444;
+    --gold: #ffd700;
 }
 
 * {
     box-sizing: border-box;
-    /* Critical for mobile sizing */
 }
 
 body {
@@ -20,7 +20,6 @@ body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     overflow: hidden;
-    /* Prevent body scroll, we scroll inside .controls */
 }
 
 #app {
@@ -31,7 +30,7 @@ body {
 
 /* --- Controls Section --- */
 .controls {
-    width: 360px;
+    width: 380px;
     padding: 1.5rem;
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
@@ -41,9 +40,7 @@ body {
     gap: 1.2rem;
     z-index: 10;
     overflow-y: auto;
-    /* Scrollable content */
     -webkit-overflow-scrolling: touch;
-    /* Smooth scroll on iOS */
 }
 
 h1 {
@@ -76,7 +73,6 @@ label {
     color: var(--text-secondary);
 }
 
-/* Base Input Styles */
 input {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
@@ -84,7 +80,7 @@ input {
     border-radius: 0.5rem;
     color: white;
     font-size: 16px;
-    /* 16px prevents iOS zoom on focus */
+    /* Prevents iOS zoom */
     width: 100%;
     transition: border-color 0.3s;
 }
@@ -111,19 +107,17 @@ input:focus {
     gap: 0.75rem;
 }
 
-/* Header: Name | Price | Delete */
+/* Header */
 .material-header {
     display: flex;
     gap: 0.5rem;
     align-items: center;
     flex-wrap: wrap;
-    /* Allows wrapping on very small screens */
 }
 
 .material-header input[type="text"] {
     flex: 2;
     min-width: 120px;
-    /* Don't squash too small */
     padding: 0.5rem;
 }
 
@@ -137,7 +131,7 @@ input:focus {
     border-color: rgba(100, 108, 255, 0.3);
 }
 
-/* Package Calculator Bar */
+/* Package Calculator */
 .package-calc {
     display: flex;
     gap: 0.5rem;
@@ -146,7 +140,6 @@ input:focus {
     padding: 0.5rem;
     border-radius: 4px;
     flex-wrap: wrap;
-    /* Critical for mobile */
 }
 
 .package-calc label {
@@ -164,7 +157,7 @@ input:focus {
     min-width: 60px;
 }
 
-/* Options: Walls | Floor | Ceil | Excl */
+/* Options Row */
 .material-options {
     display: flex;
     gap: 0.5rem;
@@ -174,7 +167,6 @@ input:focus {
     border-top: 1px solid var(--glass-border);
     padding-top: 0.5rem;
     flex-wrap: wrap;
-    /* Wrap options if needed */
     justify-content: space-between;
 }
 
@@ -187,7 +179,6 @@ input:focus {
     padding: 4px 8px;
     border-radius: 4px;
     flex-grow: 1;
-    /* Make touch targets larger */
     justify-content: center;
 }
 
@@ -201,6 +192,11 @@ input:focus {
     color: white;
 }
 
+/* Specific highlight for Subtract Input */
+.subtract-input {
+    border-color: rgba(255, 68, 68, 0.3) !important;
+}
+
 /* Buttons */
 .btn-remove {
     background: rgba(255, 68, 68, 0.1);
@@ -209,7 +205,6 @@ input:focus {
     border-radius: 4px;
     cursor: pointer;
     width: 32px;
-    /* Larger touch target */
     height: 32px;
     display: flex;
     align-items: center;
@@ -229,7 +224,6 @@ input:focus {
     color: var(--accent);
     border: 1px dashed var(--accent);
     padding: 0.8rem;
-    /* Larger touch target */
     border-radius: 0.5rem;
     cursor: pointer;
     font-size: 0.9rem;
@@ -266,10 +260,11 @@ input:focus {
     color: var(--text-secondary);
 }
 
+/* Breakdown List */
 .breakdown-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.5rem;
     padding: 0.5rem 0;
     border-bottom: 1px solid var(--glass-border);
 }
@@ -277,12 +272,46 @@ input:focus {
 .breakdown-item {
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
+    align-items: center;
+    font-size: 0.85rem;
     color: var(--text-secondary);
+    padding: 0.2rem 0;
 }
 
-.breakdown-item span:last-child {
+/* Breakdown Info (Left) */
+.bd-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+}
+
+.bd-name {
     color: var(--text-primary);
+    font-weight: 500;
+}
+
+.bd-formula {
+    font-size: 0.7em;
+    opacity: 0.6;
+}
+
+/* Breakdown Stats (Right) */
+.bd-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.bd-area {
+    color: var(--gold);
+    font-size: 0.8em;
+}
+
+.bd-price {
+    color: var(--text-primary);
+    font-weight: bold;
 }
 
 .result-item.cost-result {
@@ -296,45 +325,27 @@ input:focus {
     flex: 1;
     background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
     min-height: 0;
-    /* Important for Flexbox */
 }
 
-/* --- MOBILE OPTIMIZATION --- */
+/* --- Mobile Optimization --- */
 @media (max-width: 900px) {
     #app {
         flex-direction: column;
-        /* Stack vertically */
     }
 
     #canvas-container {
         height: 40vh;
-        /* Map takes top 40% */
         flex: none;
-        /* Fixed height */
         order: 1;
-        /* Visually top */
     }
 
     .controls {
         width: 100%;
         height: 60vh;
-        /* Controls take bottom 60% */
         flex: none;
         order: 2;
-        /* Visually bottom */
         border-right: none;
         border-top: 1px solid var(--glass-border);
         padding: 1rem;
-        /* Slightly less padding to save space */
-    }
-
-    /* Make Material cards more compact on mobile */
-    .material-card {
-        padding: 0.5rem;
-    }
-
-    .material-options {
-        justify-content: flex-start;
-        /* Align left */
     }
 }

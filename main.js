@@ -32,7 +32,7 @@ const params = {
             id: 1, name: 'Insulation', price: 12.00,
             wallCount: 4, floor: false, ceiling: true,
             pkgPrice: 60, pkgArea: 5,
-            subtractArea: 2.5 // Example: subtracting area for a door/window
+            subtractArea: 2.5
         },
         {
             id: 2, name: 'Paint', price: 5.50,
@@ -62,7 +62,7 @@ function renderMaterialInputs() {
         nameInput.value = mat.name;
         nameInput.addEventListener('input', (e) => {
             mat.name = e.target.value;
-            updateCalculations();
+            updateCalculations(); // Only update name text
         });
 
         const priceInput = document.createElement('input');
@@ -172,7 +172,7 @@ function renderMaterialInputs() {
         ceilingLabel.appendChild(ceilingInput);
         ceilingLabel.append("Ceil");
 
-        // --- NEW: Subtract Input ---
+        // Subtract Input
         const subLabel = document.createElement('label');
         subLabel.className = 'option-group';
         subLabel.title = "Subtract square meters (doors, windows, etc)";
@@ -194,7 +194,7 @@ function renderMaterialInputs() {
         options.appendChild(wallLabel);
         options.appendChild(floorLabel);
         options.appendChild(ceilingLabel);
-        options.appendChild(subLabel); // Append the new input
+        options.appendChild(subLabel);
 
         card.appendChild(header);
         card.appendChild(pkgRow);
@@ -214,7 +214,7 @@ if (addMaterialBtn) {
             ceiling: true,
             pkgPrice: 0,
             pkgArea: 0,
-            subtractArea: 0 // Default 0
+            subtractArea: 0
         });
         renderMaterialInputs();
         onInput();
@@ -245,7 +245,7 @@ function updateCalculations() {
         costBreakdownContainer.innerHTML = '';
 
         params.materials.forEach(mat => {
-            // 1. Sum up positive areas
+            // 1. Calculate raw area for this layer
             let matArea = 0;
             matArea += (mat.wallCount * avgWallArea);
             if (mat.floor) matArea += floorArea;
@@ -255,33 +255,38 @@ function updateCalculations() {
             const exclusion = mat.subtractArea || 0;
             matArea = matArea - exclusion;
 
-            // Safety: Cost cannot be negative
+            // Safety: Area cannot be negative
             if (matArea < 0) matArea = 0;
 
             const materialCost = matArea * mat.price;
             grandTotal += materialCost;
 
-            // UI Item
+            // --- HTML GENERATION ---
             const item = document.createElement('div');
             item.className = 'breakdown-item';
-            const formatPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(materialCost);
 
-            // Build the subtitle string
+            // Format Strings
+            const formatPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(materialCost);
+            const formatArea = matArea.toFixed(2); // The missing piece!
+
+            // Build formula string
             let includes = [];
             if (mat.wallCount > 0) includes.push(`${mat.wallCount}W`);
             if (mat.floor) includes.push('F');
             if (mat.ceiling) includes.push('C');
 
             let subString = includes.length ? includes.join('+') : 'None';
-
-            // Add exclusion info to text if it exists
-            if (exclusion > 0) {
-                subString += ` -${exclusion}m²`;
-            }
+            if (exclusion > 0) subString += ` -${exclusion}m²`;
 
             item.innerHTML = `
-                <span>${mat.name || 'Layer'} <small style="opacity:0.5">(${subString})</small></span>
-                <span>${formatPrice}</span>
+                <div class="bd-info">
+                    <span class="bd-name">${mat.name || 'Layer'}</span>
+                    <span class="bd-formula">${subString}</span>
+                </div>
+                <div class="bd-stats">
+                    <span class="bd-area">${formatArea} m²</span>
+                    <span class="bd-price">${formatPrice}</span>
+                </div>
             `;
             costBreakdownContainer.appendChild(item);
         });
@@ -340,6 +345,7 @@ const labelsGroup = new THREE.Group();
 scene.add(labelsGroup);
 
 const loader = new FontLoader();
+// Local Font Path
 loader.load('./vendor/helvetiker_regular.typeface.json', function (loadedFont) {
     font = loadedFont;
     updateScene();
@@ -383,7 +389,7 @@ function updateScene() {
 
     if (!font) return;
 
-    // Smart Sizing
+    // Label Logic
     let textSize = maxDim * 0.03;
     if (textSize > height * 0.15) textSize = height * 0.15;
     textSize = Math.max(0.15, textSize);
