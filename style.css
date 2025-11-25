@@ -9,23 +9,30 @@
     --danger: #ff4444;
 }
 
+* {
+    box-sizing: border-box;
+    /* Critical for mobile sizing */
+}
+
 body {
     margin: 0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-primary);
     overflow: hidden;
+    /* Prevent body scroll, we scroll inside .controls */
 }
 
 #app {
     display: flex;
     height: 100vh;
+    width: 100vw;
 }
 
+/* --- Controls Section --- */
 .controls {
-    width: 340px;
-    /* Slightly wider for the list */
-    padding: 2rem;
+    width: 360px;
+    padding: 1.5rem;
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
     border-right: 1px solid var(--glass-border);
@@ -34,6 +41,9 @@ body {
     gap: 1.2rem;
     z-index: 10;
     overflow-y: auto;
+    /* Scrollable content */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scroll on iOS */
 }
 
 h1 {
@@ -66,15 +76,16 @@ label {
     color: var(--text-secondary);
 }
 
+/* Base Input Styles */
 input {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
     padding: 0.75rem;
     border-radius: 0.5rem;
     color: white;
-    font-size: 1rem;
+    font-size: 16px;
+    /* 16px prevents iOS zoom on focus */
     width: 100%;
-    box-sizing: border-box;
     transition: border-color 0.3s;
 }
 
@@ -87,7 +98,7 @@ input:focus {
 #material-list {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 1rem;
 }
 
 .material-card {
@@ -97,33 +108,36 @@ input:focus {
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
+/* Header: Name | Price | Delete */
 .material-header {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    flex-wrap: wrap;
+    /* Allows wrapping on very small screens */
 }
 
 .material-header input[type="text"] {
     flex: 2;
-    font-size: 0.9rem;
-    padding: 0.4rem;
+    min-width: 120px;
+    /* Don't squash too small */
+    padding: 0.5rem;
 }
 
-/* This is the calculated unit price */
 .material-header input[type="number"] {
     flex: 1;
-    font-size: 0.9rem;
-    padding: 0.4rem;
+    min-width: 80px;
+    padding: 0.5rem;
     text-align: right;
     font-weight: bold;
     color: var(--accent);
-    border-color: var(--accent);
+    border-color: rgba(100, 108, 255, 0.3);
 }
 
-/* New Package Calculator Section */
+/* Package Calculator Bar */
 .package-calc {
     display: flex;
     gap: 0.5rem;
@@ -131,26 +145,26 @@ input:focus {
     background: rgba(0, 0, 0, 0.2);
     padding: 0.5rem;
     border-radius: 4px;
+    flex-wrap: wrap;
+    /* Critical for mobile */
 }
 
 .package-calc label {
     font-size: 0.7rem;
     color: var(--text-secondary);
     white-space: nowrap;
-    min-width: 50px;
 }
 
 .package-calc input {
     font-size: 0.8rem;
-    padding: 0.3rem;
+    padding: 0.4rem;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
+    flex: 1;
+    min-width: 60px;
 }
 
-.package-calc input:focus {
-    border-color: var(--text-secondary);
-}
-
+/* Options: Walls | Floor | Ceil | Excl */
 .material-options {
     display: flex;
     gap: 0.5rem;
@@ -160,7 +174,8 @@ input:focus {
     border-top: 1px solid var(--glass-border);
     padding-top: 0.5rem;
     flex-wrap: wrap;
-    /* Allows subtract input to wrap if needed */
+    /* Wrap options if needed */
+    justify-content: space-between;
 }
 
 .option-group {
@@ -168,40 +183,41 @@ input:focus {
     align-items: center;
     gap: 0.3rem;
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.2);
-    /* Slight background to group them visually */
-    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px 8px;
     border-radius: 4px;
+    flex-grow: 1;
+    /* Make touch targets larger */
+    justify-content: center;
 }
 
 .option-group input[type="number"] {
     width: 40px;
     padding: 2px;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     text-align: center;
     background: rgba(0, 0, 0, 0.5);
     border-color: var(--glass-border);
-    font-weight: normal;
     color: white;
 }
 
-/* Specific style for the Subtract input to make it stand out slightly */
-.subtract-input {
-    border-color: rgba(255, 68, 68, 0.3) !important;
-}
-
+/* Buttons */
 .btn-remove {
     background: rgba(255, 68, 68, 0.1);
     color: var(--danger);
     border: 1px solid rgba(255, 68, 68, 0.2);
     border-radius: 4px;
     cursor: pointer;
-    width: 28px;
-    height: 30px;
+    width: 32px;
+    /* Larger touch target */
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
+    font-size: 1.2rem;
+    line-height: 0;
+    flex-shrink: 0;
 }
 
 .btn-remove:hover {
@@ -212,7 +228,8 @@ input:focus {
     background: rgba(100, 108, 255, 0.15);
     color: var(--accent);
     border: 1px dashed var(--accent);
-    padding: 0.6rem;
+    padding: 0.8rem;
+    /* Larger touch target */
     border-radius: 0.5rem;
     cursor: pointer;
     font-size: 0.9rem;
@@ -278,4 +295,46 @@ input:focus {
 #canvas-container {
     flex: 1;
     background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+    min-height: 0;
+    /* Important for Flexbox */
+}
+
+/* --- MOBILE OPTIMIZATION --- */
+@media (max-width: 900px) {
+    #app {
+        flex-direction: column;
+        /* Stack vertically */
+    }
+
+    #canvas-container {
+        height: 40vh;
+        /* Map takes top 40% */
+        flex: none;
+        /* Fixed height */
+        order: 1;
+        /* Visually top */
+    }
+
+    .controls {
+        width: 100%;
+        height: 60vh;
+        /* Controls take bottom 60% */
+        flex: none;
+        order: 2;
+        /* Visually bottom */
+        border-right: none;
+        border-top: 1px solid var(--glass-border);
+        padding: 1rem;
+        /* Slightly less padding to save space */
+    }
+
+    /* Make Material cards more compact on mobile */
+    .material-card {
+        padding: 0.5rem;
+    }
+
+    .material-options {
+        justify-content: flex-start;
+        /* Align left */
+    }
 }
