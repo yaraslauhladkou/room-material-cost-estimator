@@ -112,21 +112,54 @@ input:focus {
     padding: 0.4rem;
 }
 
+/* This is the calculated unit price */
 .material-header input[type="number"] {
     flex: 1;
     font-size: 0.9rem;
     padding: 0.4rem;
     text-align: right;
+    font-weight: bold;
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* New Package Calculator Section */
+.package-calc {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.package-calc label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    min-width: 50px;
+}
+
+.package-calc input {
+    font-size: 0.8rem;
+    padding: 0.3rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+}
+
+.package-calc input:focus {
+    border-color: var(--text-secondary);
 }
 
 .material-options {
     display: flex;
-    gap: 1rem;
+    gap: 0.8rem;
     align-items: center;
     font-size: 0.75rem;
     color: var(--text-secondary);
     border-top: 1px solid var(--glass-border);
     padding-top: 0.5rem;
+    justify-content: space-between;
 }
 
 .option-group {
@@ -136,18 +169,15 @@ input:focus {
     cursor: pointer;
 }
 
-.option-group input[type="checkbox"] {
-    width: auto;
-    margin: 0;
-    cursor: pointer;
-}
-
 .option-group input[type="number"] {
-    width: 35px;
+    width: 30px;
     padding: 2px;
     font-size: 0.75rem;
     text-align: center;
     background: rgba(0, 0, 0, 0.5);
+    border-color: var(--glass-border);
+    font-weight: normal;
+    color: white;
 }
 
 .btn-remove {
@@ -156,14 +186,12 @@ input:focus {
     border: 1px solid rgba(255, 68, 68, 0.2);
     border-radius: 4px;
     cursor: pointer;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 1rem;
-    line-height: 1;
 }
 
 .btn-remove:hover {
@@ -180,6 +208,7 @@ input:focus {
     font-size: 0.9rem;
     transition: all 0.2s;
     width: 100%;
+    margin-top: 0.5rem;
 }
 
 .btn-add:hover {

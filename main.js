@@ -28,12 +28,16 @@ const params = {
     width: 4,
     height: 3,
     materials: [
-        // Default: Insulation on walls (4) and ceiling, but not floor
-        { id: 1, name: 'Insulation', price: 12.00, wallCount: 4, floor: false, ceiling: true },
-        // Default: Paint everywhere
-        { id: 2, name: 'Paint', price: 5.50, wallCount: 4, floor: false, ceiling: true },
-        // Default: Flooring only on floor
-        { id: 3, name: 'Laminate', price: 25.00, wallCount: 0, floor: true, ceiling: false }
+        {
+            id: 1, name: 'Insulation', price: 12.00,
+            wallCount: 4, floor: false, ceiling: true,
+            pkgPrice: 60, pkgArea: 5 // Example defaults
+        },
+        {
+            id: 2, name: 'Paint', price: 5.50,
+            wallCount: 4, floor: false, ceiling: true,
+            pkgPrice: 0, pkgArea: 0
+        }
     ]
 };
 
@@ -46,7 +50,7 @@ function renderMaterialInputs() {
         const card = document.createElement('div');
         card.className = 'material-card';
 
-        // --- Header (Name, Price, Delete) ---
+        // 1. Header: Name, Unit Price, Delete
         const header = document.createElement('div');
         header.className = 'material-header';
 
@@ -59,14 +63,19 @@ function renderMaterialInputs() {
             updateCalculations();
         });
 
+        // The Unit Price Input (Can be edited manually or auto-calculated)
         const priceInput = document.createElement('input');
         priceInput.type = 'number';
         priceInput.placeholder = '$/m²';
-        priceInput.value = mat.price;
-        priceInput.min = 0;
-        priceInput.step = 0.1;
-        priceInput.addEventListener('input', (e) => {
+        priceInput.value = mat.price.toFixed(2);
+        priceInput.step = 0.01;
+        priceInput.title = "Price per square meter (Calculated automatically if package info is entered)";
+        priceInput.addEventListener('change', (e) => {
+            // If user manually changes this, we assume they are overriding the package calc
             mat.price = parseFloat(e.target.value) || 0;
+            // Optional: Clear package inputs to avoid confusion? 
+            // Let's keep them but maybe they are now 'stale'. 
+            // For now, we just update the model.
             onInput();
         });
 
@@ -84,7 +93,46 @@ function renderMaterialInputs() {
         header.appendChild(priceInput);
         header.appendChild(removeBtn);
 
-        // --- Options (Walls Qty, Floor, Ceiling) ---
+        // 2. Package Calculator
+        const pkgRow = document.createElement('div');
+        pkgRow.className = 'package-calc';
+
+        const pkgLabel = document.createElement('label');
+        pkgLabel.innerText = "Pkg Calc:";
+
+        const pkgPriceInput = document.createElement('input');
+        pkgPriceInput.type = 'number';
+        pkgPriceInput.placeholder = 'Pkg Price ($)';
+        pkgPriceInput.value = mat.pkgPrice || '';
+
+        const pkgAreaInput = document.createElement('input');
+        pkgAreaInput.type = 'number';
+        pkgAreaInput.placeholder = 'Pkg m²';
+        pkgAreaInput.value = mat.pkgArea || '';
+
+        // Helper to recalculate unit price
+        const updateFromPackage = () => {
+            const p = parseFloat(pkgPriceInput.value) || 0;
+            const a = parseFloat(pkgAreaInput.value) || 0;
+            mat.pkgPrice = p;
+            mat.pkgArea = a;
+
+            if (a > 0) {
+                const unitPrice = p / a;
+                mat.price = unitPrice;
+                priceInput.value = unitPrice.toFixed(2);
+                onInput();
+            }
+        };
+
+        pkgPriceInput.addEventListener('input', updateFromPackage);
+        pkgAreaInput.addEventListener('input', updateFromPackage);
+
+        pkgRow.appendChild(pkgLabel);
+        pkgRow.appendChild(pkgPriceInput);
+        pkgRow.appendChild(pkgAreaInput);
+
+        // 3. Surface Options
         const options = document.createElement('div');
         options.className = 'material-options';
 
@@ -127,13 +175,14 @@ function renderMaterialInputs() {
             onInput();
         });
         ceilingLabel.appendChild(ceilingInput);
-        ceilingLabel.append("Ceil");
+        ceilingLabel.append("Ceiling");
 
         options.appendChild(wallLabel);
         options.appendChild(floorLabel);
         options.appendChild(ceilingLabel);
 
         card.appendChild(header);
+        card.appendChild(pkgRow); // Insert calculator row
         card.appendChild(options);
         materialListContainer.appendChild(card);
     });
@@ -145,9 +194,11 @@ if (addMaterialBtn) {
             id: Date.now(),
             name: 'New Layer',
             price: 0,
-            wallCount: 4, // Default all walls
+            wallCount: 4,
             floor: true,
-            ceiling: true
+            ceiling: true,
+            pkgPrice: 0,
+            pkgArea: 0
         });
         renderMaterialInputs();
         onInput();
@@ -161,8 +212,6 @@ function updateCalculations() {
     const totalWallArea = 2 * (length * height) + 2 * (width * height);
     const floorArea = length * width;
     const ceilingArea = length * width;
-
-    // Average area per wall (estimation)
     const avgWallArea = totalWallArea / 4;
 
     // Update UI Stats
@@ -170,7 +219,6 @@ function updateCalculations() {
     if (outputs.floor) outputs.floor.textContent = `${floorArea.toFixed(2)} m²`;
     if (outputs.ceiling) outputs.ceiling.textContent = `${ceilingArea.toFixed(2)} m²`;
 
-    // Calculate Total Area (Just geometry)
     const totalGeoArea = totalWallArea + floorArea + ceilingArea;
     if (outputs.total) outputs.total.textContent = `${totalGeoArea.toFixed(2)} m²`;
 
@@ -180,25 +228,18 @@ function updateCalculations() {
         costBreakdownContainer.innerHTML = '';
 
         params.materials.forEach(mat => {
-            // Calculate specific area for this material
             let matArea = 0;
-
-            // Wall Calculation (based on count 0-4)
             matArea += (mat.wallCount * avgWallArea);
-
-            // Floor/Ceiling
             if (mat.floor) matArea += floorArea;
             if (mat.ceiling) matArea += ceilingArea;
 
             const materialCost = matArea * mat.price;
             grandTotal += materialCost;
 
-            // UI Item
             const item = document.createElement('div');
             item.className = 'breakdown-item';
             const formatPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(materialCost);
 
-            // Small subtitle to show what's included
             let includes = [];
             if (mat.wallCount > 0) includes.push(`${mat.wallCount}W`);
             if (mat.floor) includes.push('F');
@@ -289,7 +330,7 @@ function updateScene() {
 
     const grandTotal = updateCalculations();
 
-    // Update Geometry
+    // Geometry
     room.scale.set(length, height, width);
     room.position.y = height / 2;
 
@@ -300,7 +341,7 @@ function updateScene() {
     gridHelper = new THREE.GridHelper(gridSize, 20, 0x444444, 0x222222);
     scene.add(gridHelper);
 
-    // Clean Labels
+    // Labels
     labelsGroup.children.forEach(child => {
         if (child.geometry) child.geometry.dispose();
         if (child.material) child.material.dispose();
@@ -309,7 +350,7 @@ function updateScene() {
 
     if (!font) return;
 
-    // Label Logic
+    // Labels Logic
     let textSize = maxDim * 0.03;
     if (textSize > height * 0.15) textSize = height * 0.15;
     textSize = Math.max(0.15, textSize);
