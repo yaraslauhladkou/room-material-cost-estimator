@@ -6,6 +6,7 @@
     --text-secondary: #a0a0a0;
     --accent: #646cff;
     --success: #00ff88;
+    --danger: #ff4444;
 }
 
 body {
@@ -22,7 +23,8 @@ body {
 }
 
 .controls {
-    width: 320px;
+    width: 340px;
+    /* Slightly wider for the list */
     padding: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
@@ -71,6 +73,8 @@ input {
     border-radius: 0.5rem;
     color: white;
     font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
     transition: border-color 0.3s;
 }
 
@@ -79,6 +83,66 @@ input:focus {
     border-color: var(--accent);
 }
 
+/* --- Material List Styles --- */
+#material-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.material-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.material-row input[type="text"] {
+    flex: 2;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+}
+
+.material-row input[type="number"] {
+    flex: 1;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    text-align: right;
+}
+
+.btn-remove {
+    background: rgba(255, 68, 68, 0.2);
+    color: var(--danger);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    width: 28px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.btn-remove:hover {
+    background: rgba(255, 68, 68, 0.4);
+}
+
+.btn-add {
+    background: rgba(100, 108, 255, 0.2);
+    color: var(--accent);
+    border: 1px dashed var(--accent);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-add:hover {
+    background: rgba(100, 108, 255, 0.4);
+}
+
+/* --- Results Styles --- */
 .results {
     margin-top: auto;
     background: rgba(0, 0, 0, 0.3);
@@ -102,13 +166,30 @@ input:focus {
     color: var(--text-secondary);
 }
 
+.breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.breakdown-item span:last-child {
+    color: var(--text-primary);
+}
+
 .result-item.cost-result {
     font-size: 1.25rem;
     font-weight: bold;
     color: var(--success);
-    border-top: 1px solid var(--glass-border);
-    padding-top: 0.5rem;
-    margin-top: 0.25rem;
+    padding-top: 0.25rem;
 }
 
 #canvas-container {

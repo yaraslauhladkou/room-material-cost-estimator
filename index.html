@@ -4,15 +4,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Room Material Cost Estimator</title>
+    <title>Room Material Calculator</title>
     <link rel="stylesheet" href="style.css" />
     <script type="importmap">
       {
         "imports": {
-          "three": "./vendor/three.module.js",
-          "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js",
-          "three/addons/loaders/FontLoader.js": "./vendor/FontLoader.js",
-          "three/addons/geometries/TextGeometry.js": "./vendor/TextGeometry.js"
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
       }
     </script>
@@ -37,11 +35,11 @@
                 <input type="number" id="height" value="3" min="1" step="0.1" />
             </div>
 
-            <div class="section-title">Cost Settings</div>
-            <div class="input-group">
-                <label for="price">Material Price ($/m²)</label>
-                <input type="number" id="price" value="15" min="0" step="0.5" />
+            <div class="section-title">Material Layers</div>
+            <div id="material-list">
+                <!-- Dynamic inputs will appear here -->
             </div>
+            <button id="add-material-btn" class="btn-add">+ Add Layer</button>
 
             <div class="results">
                 <div class="result-item">
@@ -60,8 +58,14 @@
                     <span>Total Area</span>
                     <span id="total-area">0 m²</span>
                 </div>
+
+                <!-- Cost Breakdown Section -->
+                <div id="cost-breakdown" class="breakdown-list">
+                    <!-- Dynamic cost items -->
+                </div>
+
                 <div class="result-item cost-result">
-                    <span>Est. Cost</span>
+                    <span>Grand Total</span>
                     <span id="total-cost">$0.00</span>
                 </div>
             </div>
