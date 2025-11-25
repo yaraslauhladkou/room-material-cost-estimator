@@ -62,7 +62,7 @@ function renderMaterialInputs() {
         nameInput.value = mat.name;
         nameInput.addEventListener('input', (e) => {
             mat.name = e.target.value;
-            updateCalculations(); // Only update name text
+            updateCalculations();
         });
 
         const priceInput = document.createElement('input');
@@ -255,11 +255,20 @@ function updateCalculations() {
             const exclusion = mat.subtractArea || 0;
             matArea = matArea - exclusion;
 
-            // Safety: Area cannot be negative
+            // Safety
             if (matArea < 0) matArea = 0;
 
             const materialCost = matArea * mat.price;
             grandTotal += materialCost;
+
+            // --- PACKAGE CALCULATION ---
+            let packageDisplay = '';
+            // Only calculate if package area is defined and greater than 0
+            if (mat.pkgArea && mat.pkgArea > 0) {
+                // Math.ceil rounds up (e.g. 4.1 becomes 5 packs)
+                const numPacks = Math.ceil(matArea / mat.pkgArea);
+                packageDisplay = `<span class="bd-pck">${numPacks} pck</span>`;
+            }
 
             // --- HTML GENERATION ---
             const item = document.createElement('div');
@@ -267,7 +276,7 @@ function updateCalculations() {
 
             // Format Strings
             const formatPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(materialCost);
-            const formatArea = matArea.toFixed(2); // The missing piece!
+            const formatArea = matArea.toFixed(2);
 
             // Build formula string
             let includes = [];
@@ -283,6 +292,7 @@ function updateCalculations() {
                     <span class="bd-name">${mat.name || 'Layer'}</span>
                     <span class="bd-formula">${subString}</span>
                 </div>
+                ${packageDisplay}
                 <div class="bd-stats">
                     <span class="bd-area">${formatArea} m²</span>
                     <span class="bd-price">${formatPrice}</span>
@@ -345,7 +355,6 @@ const labelsGroup = new THREE.Group();
 scene.add(labelsGroup);
 
 const loader = new FontLoader();
-// Local Font Path
 loader.load('./vendor/helvetiker_regular.typeface.json', function (loadedFont) {
     font = loadedFont;
     updateScene();
