@@ -52,7 +52,7 @@ const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-camera.position.set(8, 8, 8);
+camera.position.set(10, 10, 10); // Moved camera back slightly
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -64,11 +64,11 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(5, 10, 7);
+directionalLight.position.set(10, 20, 10);
 scene.add(directionalLight);
 
 // Room Mesh
@@ -78,7 +78,7 @@ const material = new THREE.MeshStandardMaterial({
     metalness: 0.1,
     side: THREE.BackSide,
     transparent: true,
-    opacity: 0.5
+    opacity: 0.4 // Slightly more transparent for better text visibility
 });
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -87,7 +87,8 @@ room.renderOrder = 0;
 scene.add(room);
 
 // Grid Helper
-const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+// We initialize it but will resize it in updateScene
+let gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
 scene.add(gridHelper);
 
 // Font & Labels
@@ -107,8 +108,8 @@ function createLabel(text, position, color = 0xffffff, size = 0.3) {
     const textGeometry = new TextGeometry(text, {
         font: font,
         size: size,
-        height: 0.02,
-        curveSegments: 12,
+        height: size * 0.1, // Thickness relative to size
+        curveSegments: 6,   // Lower segments for performance
         bevelEnabled: false,
     });
 
@@ -131,11 +132,19 @@ function createLabel(text, position, color = 0xffffff, size = 0.3) {
 function updateScene() {
     const { length, width, height, price } = params;
 
-    // Scale the room mesh
+    // 1. Update Room geometry
     room.scale.set(length, height, width);
     room.position.y = height / 2;
 
-    // Memory Cleanup
+    // 2. Update Grid Helper size to match the room (plus some margin)
+    scene.remove(gridHelper);
+    const gridSize = Math.max(length, width) * 2;
+    // Ensure grid divisions are integers and not too dense
+    const gridDivisions = Math.floor(gridSize / 1);
+    gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x444444, 0x222222);
+    scene.add(gridHelper);
+
+    // 3. Clear old labels
     labelsGroup.children.forEach(child => {
         if (child.geometry) child.geometry.dispose();
         if (child.material) child.material.dispose();
@@ -144,40 +153,47 @@ function updateScene() {
 
     if (!font) return;
 
-    // Calculations for labels
+    // 4. Calculate Text Size & Spacing
+    // We dampen the scaling so text doesn't get ridiculously huge
+    const maxDim = Math.max(length, width, height);
+    // Formula: Base 0.3 + 3% of the largest dimension
+    const textSize = 0.3 + (maxDim * 0.03);
+
+    // Spacing Gap: The buffer zone between geometry and text
+    const gap = textSize * 2.0;
+
+    // Calculations for text
     const totalArea = (2 * (length * height) + 2 * (width * height)) + (length * width * 2);
     const totalCost = totalArea * price;
     const formattedCost = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost);
-
-    // Dynamic Text Size
-    const minDim = Math.min(length, width, height);
-    const textSize = Math.max(0.2, minDim * 0.08);
-
-    // -- Dimensions --
-    createLabel(`${length}m`, new THREE.Vector3(0, 0, width / 2 + 0.5), 0xffffff, textSize);
-    createLabel(`${width}m`, new THREE.Vector3(length / 2 + 0.5, 0, 0), 0xffffff, textSize);
-    createLabel(`${height}m`, new THREE.Vector3(-length / 2 - 0.5, height / 2, -width / 2), 0xffffff, textSize);
-
-    // -- Surfaces --
-    // Floor
     const floorArea = (length * width).toFixed(2);
-    createLabel(`Floor: ${floorArea}m²`, new THREE.Vector3(0, 0.5, 0), 0xffff00, textSize);
-
-    // Ceiling
     const ceilingArea = (length * width).toFixed(2);
-    createLabel(`Ceiling: ${ceilingArea}m²`, new THREE.Vector3(0, height - 0.5, 0), 0xffff00, textSize);
-
-    // Walls
     const wallArea = (2 * length * height + 2 * width * height).toFixed(2);
-    createLabel(`Walls: ${wallArea}m²`, new THREE.Vector3(0, height / 2, -width / 2 + 0.5), 0xffff00, textSize);
 
-    // -- TOTAL COST LABEL (Floating above) --
-    // We create a larger, green label floating above the room
+    // -- Dimensions Labels --
+    // Push them out by 'width/2 + gap' to avoid clipping
+    createLabel(`${length}m`, new THREE.Vector3(0, 0, width / 2 + gap), 0xffffff, textSize);
+    createLabel(`${width}m`, new THREE.Vector3(length / 2 + gap, 0, 0), 0xffffff, textSize);
+    createLabel(`${height}m`, new THREE.Vector3(-length / 2 - gap, height / 2, -width / 2), 0xffffff, textSize);
+
+    // -- Surface Labels --
+
+    // Floor: Raised by 'gap' so it floats above grid
+    createLabel(`Floor: ${floorArea}m²`, new THREE.Vector3(0, gap, 0), 0xffff00, textSize);
+
+    // Ceiling: Lowered by 'gap' from the top
+    createLabel(`Ceiling: ${ceilingArea}m²`, new THREE.Vector3(0, height - gap, 0), 0xffff00, textSize);
+
+    // Walls: Centered on height, pushed out slightly
+    createLabel(`Walls: ${wallArea}m²`, new THREE.Vector3(0, height / 2, -width / 2 + gap), 0xffff00, textSize);
+
+    // -- TOTAL COST LABEL --
+    // Pushed WAY up: Height + extra buffer based on text size
     createLabel(
         `Total Estimate: ${formattedCost}`,
-        new THREE.Vector3(0, height + 1.0, 0), // Floats 1m above the room
-        0x00ff88, // Green color
-        textSize * 1.5 // Larger text
+        new THREE.Vector3(0, height + (gap * 2), 0),
+        0x00ff88,
+        textSize * 1.5 // Total cost is 1.5x larger than normal text
     );
 }
 
@@ -206,7 +222,6 @@ window.addEventListener('resize', () => {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Rotate labels to match camera (Billboarding)
     labelsGroup.children.forEach(label => {
         label.quaternion.copy(camera.quaternion);
     });
