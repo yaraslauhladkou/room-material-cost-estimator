@@ -153,13 +153,14 @@ input:focus {
 
 .material-options {
     display: flex;
-    gap: 0.8rem;
+    gap: 0.5rem;
     align-items: center;
     font-size: 0.75rem;
     color: var(--text-secondary);
     border-top: 1px solid var(--glass-border);
     padding-top: 0.5rem;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    /* Allows subtract input to wrap if needed */
 }
 
 .option-group {
@@ -167,10 +168,14 @@ input:focus {
     align-items: center;
     gap: 0.3rem;
     cursor: pointer;
+    background: rgba(0, 0, 0, 0.2);
+    /* Slight background to group them visually */
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
 .option-group input[type="number"] {
-    width: 30px;
+    width: 40px;
     padding: 2px;
     font-size: 0.75rem;
     text-align: center;
@@ -178,6 +183,11 @@ input:focus {
     border-color: var(--glass-border);
     font-weight: normal;
     color: white;
+}
+
+/* Specific style for the Subtract input to make it stand out slightly */
+.subtract-input {
+    border-color: rgba(255, 68, 68, 0.3) !important;
 }
 
 .btn-remove {

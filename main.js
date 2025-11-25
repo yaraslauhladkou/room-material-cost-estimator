@@ -31,12 +31,14 @@ const params = {
         {
             id: 1, name: 'Insulation', price: 12.00,
             wallCount: 4, floor: false, ceiling: true,
-            pkgPrice: 60, pkgArea: 5 // Example defaults
+            pkgPrice: 60, pkgArea: 5,
+            subtractArea: 2.5 // Example: subtracting area for a door/window
         },
         {
             id: 2, name: 'Paint', price: 5.50,
             wallCount: 4, floor: false, ceiling: true,
-            pkgPrice: 0, pkgArea: 0
+            pkgPrice: 0, pkgArea: 0,
+            subtractArea: 0
         }
     ]
 };
@@ -63,19 +65,13 @@ function renderMaterialInputs() {
             updateCalculations();
         });
 
-        // The Unit Price Input (Can be edited manually or auto-calculated)
         const priceInput = document.createElement('input');
         priceInput.type = 'number';
         priceInput.placeholder = '$/m²';
         priceInput.value = mat.price.toFixed(2);
         priceInput.step = 0.01;
-        priceInput.title = "Price per square meter (Calculated automatically if package info is entered)";
         priceInput.addEventListener('change', (e) => {
-            // If user manually changes this, we assume they are overriding the package calc
             mat.price = parseFloat(e.target.value) || 0;
-            // Optional: Clear package inputs to avoid confusion? 
-            // Let's keep them but maybe they are now 'stale'. 
-            // For now, we just update the model.
             onInput();
         });
 
@@ -102,7 +98,7 @@ function renderMaterialInputs() {
 
         const pkgPriceInput = document.createElement('input');
         pkgPriceInput.type = 'number';
-        pkgPriceInput.placeholder = 'Pkg Price ($)';
+        pkgPriceInput.placeholder = 'Pkg $';
         pkgPriceInput.value = mat.pkgPrice || '';
 
         const pkgAreaInput = document.createElement('input');
@@ -110,7 +106,6 @@ function renderMaterialInputs() {
         pkgAreaInput.placeholder = 'Pkg m²';
         pkgAreaInput.value = mat.pkgArea || '';
 
-        // Helper to recalculate unit price
         const updateFromPackage = () => {
             const p = parseFloat(pkgPriceInput.value) || 0;
             const a = parseFloat(pkgAreaInput.value) || 0;
@@ -132,7 +127,7 @@ function renderMaterialInputs() {
         pkgRow.appendChild(pkgPriceInput);
         pkgRow.appendChild(pkgAreaInput);
 
-        // 3. Surface Options
+        // 3. Surface Options (Wall/Floor/Ceil + Subtract)
         const options = document.createElement('div');
         options.className = 'material-options';
 
@@ -175,14 +170,34 @@ function renderMaterialInputs() {
             onInput();
         });
         ceilingLabel.appendChild(ceilingInput);
-        ceilingLabel.append("Ceiling");
+        ceilingLabel.append("Ceil");
+
+        // --- NEW: Subtract Input ---
+        const subLabel = document.createElement('label');
+        subLabel.className = 'option-group';
+        subLabel.title = "Subtract square meters (doors, windows, etc)";
+        subLabel.innerHTML = "Excl m²:";
+
+        const subInput = document.createElement('input');
+        subInput.className = 'subtract-input';
+        subInput.type = 'number';
+        subInput.min = 0;
+        subInput.step = 0.1;
+        subInput.value = mat.subtractArea || 0;
+        subInput.addEventListener('input', (e) => {
+            mat.subtractArea = parseFloat(e.target.value) || 0;
+            onInput();
+        });
+
+        subLabel.appendChild(subInput);
 
         options.appendChild(wallLabel);
         options.appendChild(floorLabel);
         options.appendChild(ceilingLabel);
+        options.appendChild(subLabel); // Append the new input
 
         card.appendChild(header);
-        card.appendChild(pkgRow); // Insert calculator row
+        card.appendChild(pkgRow);
         card.appendChild(options);
         materialListContainer.appendChild(card);
     });
@@ -198,7 +213,8 @@ if (addMaterialBtn) {
             floor: true,
             ceiling: true,
             pkgPrice: 0,
-            pkgArea: 0
+            pkgArea: 0,
+            subtractArea: 0 // Default 0
         });
         renderMaterialInputs();
         onInput();
@@ -219,6 +235,7 @@ function updateCalculations() {
     if (outputs.floor) outputs.floor.textContent = `${floorArea.toFixed(2)} m²`;
     if (outputs.ceiling) outputs.ceiling.textContent = `${ceilingArea.toFixed(2)} m²`;
 
+    // Total geometric area
     const totalGeoArea = totalWallArea + floorArea + ceilingArea;
     if (outputs.total) outputs.total.textContent = `${totalGeoArea.toFixed(2)} m²`;
 
@@ -228,26 +245,42 @@ function updateCalculations() {
         costBreakdownContainer.innerHTML = '';
 
         params.materials.forEach(mat => {
+            // 1. Sum up positive areas
             let matArea = 0;
             matArea += (mat.wallCount * avgWallArea);
             if (mat.floor) matArea += floorArea;
             if (mat.ceiling) matArea += ceilingArea;
 
+            // 2. Subtract excluded area
+            const exclusion = mat.subtractArea || 0;
+            matArea = matArea - exclusion;
+
+            // Safety: Cost cannot be negative
+            if (matArea < 0) matArea = 0;
+
             const materialCost = matArea * mat.price;
             grandTotal += materialCost;
 
+            // UI Item
             const item = document.createElement('div');
             item.className = 'breakdown-item';
             const formatPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(materialCost);
 
+            // Build the subtitle string
             let includes = [];
             if (mat.wallCount > 0) includes.push(`${mat.wallCount}W`);
             if (mat.floor) includes.push('F');
             if (mat.ceiling) includes.push('C');
-            const sub = includes.length ? `(${includes.join('+')})` : '(None)';
+
+            let subString = includes.length ? includes.join('+') : 'None';
+
+            // Add exclusion info to text if it exists
+            if (exclusion > 0) {
+                subString += ` -${exclusion}m²`;
+            }
 
             item.innerHTML = `
-                <span>${mat.name || 'Layer'} <small style="opacity:0.5">${sub}</small></span>
+                <span>${mat.name || 'Layer'} <small style="opacity:0.5">(${subString})</small></span>
                 <span>${formatPrice}</span>
             `;
             costBreakdownContainer.appendChild(item);
@@ -350,7 +383,7 @@ function updateScene() {
 
     if (!font) return;
 
-    // Labels Logic
+    // Smart Sizing
     let textSize = maxDim * 0.03;
     if (textSize > height * 0.15) textSize = height * 0.15;
     textSize = Math.max(0.15, textSize);
