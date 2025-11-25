@@ -21,7 +21,7 @@ const outputs = {
 
 // State
 const params = {
-    length: 5, // Default start
+    length: 5,
     width: 4,
     height: 3,
     price: 15,
@@ -51,8 +51,7 @@ function updateCalculations() {
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 
-// Initial camera setup
-const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 2000); // Increased far plane for huge rooms
+const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 2000);
 camera.position.set(8, 8, 8);
 camera.lookAt(0, 0, 0);
 
@@ -79,7 +78,7 @@ const material = new THREE.MeshStandardMaterial({
     metalness: 0.1,
     side: THREE.BackSide,
     transparent: true,
-    opacity: 0.4
+    opacity: 0.3 // Slightly more transparent to help readability
 });
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -99,7 +98,7 @@ scene.add(labelsGroup);
 const loader = new FontLoader();
 loader.load('./vendor/helvetiker_regular.typeface.json', function (loadedFont) {
     font = loadedFont;
-    updateScene(); // Trigger first update
+    updateScene();
 });
 
 function createLabel(text, position, color = 0xffffff, size = 0.3) {
@@ -108,8 +107,8 @@ function createLabel(text, position, color = 0xffffff, size = 0.3) {
     const textGeometry = new TextGeometry(text, {
         font: font,
         size: size,
-        height: size * 0.1, // Thickness relative to size (10%)
-        curveSegments: 4,   // Low segments for performance
+        height: size * 0.05, // Very thin extrusion for crisp look
+        curveSegments: 3,    // Low poly for performance
         bevelEnabled: false,
     });
 
@@ -128,7 +127,7 @@ function createLabel(text, position, color = 0xffffff, size = 0.3) {
     labelsGroup.add(textMesh);
 }
 
-// Helper to smooth camera movement
+// Camera target for smoothing
 let targetCameraPosition = null;
 
 // Update 3D Scene
@@ -142,15 +141,11 @@ function updateScene() {
     // 2. Dynamic Grid
     scene.remove(gridHelper);
     const maxDim = Math.max(length, width, height);
-
-    // Grid Logic: Always make grid slightly larger than room
     const gridSize = Math.max(20, maxDim * 2);
-    const gridDivisions = 20;
-
-    gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x444444, 0x222222);
+    gridHelper = new THREE.GridHelper(gridSize, 20, 0x444444, 0x222222);
     scene.add(gridHelper);
 
-    // 3. Clear labels
+    // 3. Clear Labels
     labelsGroup.children.forEach(child => {
         if (child.geometry) child.geometry.dispose();
         if (child.material) child.material.dispose();
@@ -159,62 +154,63 @@ function updateScene() {
 
     if (!font) return;
 
-    // --- NEW SCALING LOGIC ---
-    // Instead of a fixed base size, size is PURELY proportional to the room.
-    // We use 5% of the largest dimension as the text height.
-    const textSize = Math.max(0.1, maxDim * 0.05);
+    // --- SMART TEXT SIZING FIX ---
+    // 1. Base size is 3% of the largest dimension (down from 5%).
+    let textSize = maxDim * 0.03;
 
-    // The gap is proportional to text size
-    const gap = textSize * 1.5;
+    // 2. CRITICAL: Clamp text size so it never exceeds 15% of the HEIGHT.
+    // This prevents Floor and Ceiling labels from overlapping in flat rooms (e.g. 50x50x2).
+    if (textSize > height * 0.15) {
+        textSize = height * 0.15;
+    }
 
-    // Calculations
+    // 3. Min/Max clamps for readability
+    textSize = Math.max(0.15, textSize); // Never smaller than 0.15m
+
+    // Gap calculation (tighten it up)
+    const gap = textSize * 1.2;
+
+    // Formatting
     const totalArea = (2 * (length * height) + 2 * (width * height)) + (length * width * 2);
     const totalCost = totalArea * price;
-    const formattedCost = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost);
+    const formattedCost = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalCost);
     const floorArea = (length * width).toFixed(2);
     const ceilingArea = (length * width).toFixed(2);
     const wallArea = (2 * length * height + 2 * width * height).toFixed(2);
 
     // -- Dimensions --
-    // Push labels out by (width/2 + gap) so they don't clip walls
+    // Push out slightly
     createLabel(`${length}m`, new THREE.Vector3(0, 0, width / 2 + gap), 0xffffff, textSize);
     createLabel(`${width}m`, new THREE.Vector3(length / 2 + gap, 0, 0), 0xffffff, textSize);
     createLabel(`${height}m`, new THREE.Vector3(-length / 2 - gap, height / 2, -width / 2), 0xffffff, textSize);
 
     // -- Surfaces --
-    // Floor: Just above 0
+    // Floor: Positioned just above the grid
     createLabel(`Floor: ${floorArea}m²`, new THREE.Vector3(0, gap, 0), 0xffff00, textSize);
 
-    // Ceiling: Just below height
+    // Ceiling: Positioned just below the roof
     createLabel(`Ceiling: ${ceilingArea}m²`, new THREE.Vector3(0, height - gap, 0), 0xffff00, textSize);
 
-    // Walls: Center
+    // Walls: Centered vertically
     createLabel(`Walls: ${wallArea}m²`, new THREE.Vector3(0, height / 2, -width / 2 + gap), 0xffff00, textSize);
 
     // -- Total Cost --
-    // Float nicely above the room
+    // Floating above, slightly larger but not huge
     createLabel(
-        `Total Estimate: ${formattedCost}`,
-        new THREE.Vector3(0, height + (textSize * 4), 0),
+        `Total: ${formattedCost}`,
+        new THREE.Vector3(0, height + (textSize * 2), 0),
         0x00ff88,
-        textSize * 1.5 // Cost is 1.5x bigger than dimensions
+        textSize * 1.2
     );
 
-    // --- AUTO CAMERA ADJUSTMENT ---
-    // If the room changes drastically, we should nudge the camera so the user isn't lost.
-    // We calculate a "fitting distance" based on max dimension.
-    const fitDistance = maxDim * 2.0;
-
-    // Check if camera is too close or too far
+    // --- AUTO CAMERA ---
+    const fitDistance = maxDim * 1.5; // Moved closer (was 2.0)
     const currentDist = camera.position.distanceTo(new THREE.Vector3(0, 0, 0));
 
-    // If we are way off (factor of 2), move camera smoothly
-    if (currentDist < fitDistance * 0.3 || currentDist > fitDistance * 3) {
-        // We set a target for the animation loop to handle
+    if (currentDist < fitDistance * 0.4 || currentDist > fitDistance * 2.5) {
         const direction = camera.position.clone().normalize();
         targetCameraPosition = direction.multiplyScalar(fitDistance);
-        // Ensure Y is positive so we don't go under floor
-        if (targetCameraPosition.y < fitDistance * 0.5) targetCameraPosition.y = fitDistance * 0.5;
+        if (targetCameraPosition.y < fitDistance * 0.3) targetCameraPosition.y = fitDistance * 0.3;
     }
 }
 
@@ -232,26 +228,22 @@ Object.values(inputs).forEach(input => {
     input.addEventListener('input', onInput);
 });
 
-// Resize Handler
 window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
 });
 
-// Animation Loop
 function animate() {
     requestAnimationFrame(animate);
 
-    // Smooth Camera lerp if target is set
     if (targetCameraPosition) {
         camera.position.lerp(targetCameraPosition, 0.05);
         if (camera.position.distanceTo(targetCameraPosition) < 0.1) {
-            targetCameraPosition = null; // Stop moving
+            targetCameraPosition = null;
         }
     }
 
-    // Billboard Text
     labelsGroup.children.forEach(label => {
         label.quaternion.copy(camera.quaternion);
     });
@@ -260,6 +252,5 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-// Init
 onInput();
 animate();
